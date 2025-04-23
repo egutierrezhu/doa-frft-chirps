@@ -48,7 +48,7 @@ def invvecT_operator(v,m):
 def dfrft(tt,xt,a):
     """
     DFrFT as Chirp Convolutions
-    >>>>> dfrft(tt,xt,a,b) <<<<<
+    >>>>> dfrft(tt,xt,a) <<<<<
     where  tt:   time axis for x(t)      
            xt:   DT signal
            a:    rotation angle factor, alpha = a*pi/2     
@@ -88,7 +88,7 @@ def dfrft(tt,xt,a):
 def dfrft1(tt,xt,a):
     """
     Chip convolution-based DFrFT using additivity property
-    >>>>> dfrft1(tt,xt,a,b) <<<<<
+    >>>>> dfrft1(tt,xt,a) <<<<<
     where  tt:   time axis for x(t)      
            xt:   DT signal
            a:    rotation angle factor, alpha = a*pi/2     
@@ -118,7 +118,7 @@ def dfrft1(tt,xt,a):
 def dlct(tt,xt,a):
     """
     A Discrete LCT as chirp convolutions
-    >>>>> dlct(tt,xt,a,b) <<<<<
+    >>>>> dlct(tt,xt,a) <<<<<
     where  tt:   time axis for x(t)      
            xt:   DT signal
            a:    rotation angle factor, alpha = a*pi/2     
@@ -157,12 +157,10 @@ def dlct(tt,xt,a):
 def dsmfrft(tt,xt,a):
     """
     Discrete Simplified FrFT (DSmFrFT) decomposed into FFT algorithm
-    >>>>> dsmfrft(tt,xt,a,b) <<<<<
+    >>>>> dsmfrft(tt,xt,a) <<<<<
     where  tt:   time axis for x(t)      
            xt:   DT signal
            a:    rotation angle factor, alpha = a*pi/2     
- 
-           args: b, level of approximation
     """        
     assert len(tt) == len(xt)        
     if a % 2==0:
@@ -190,12 +188,10 @@ def dsmfrft(tt,xt,a):
 def dsmfrft1(tt,xt,a):
     """
     DSmFrFT with convertibility property 
-    >>>>> asmfrft2(tt,xt,a,b) <<<<<
+    >>>>> asmfrft2(tt,xt,a) <<<<<
     where  tt:   time axis for x(t)      
            xt:   DT signal
            a:    rotation angle factor, alpha = a*pi/2     
- 
-           args: b, level of approximation
     """        
     assert len(tt) == len(xt)        
     N = len(xt)
@@ -228,16 +224,15 @@ def dsmfrft1(tt,xt,a):
           
 # Local DSmFrFT        
 
-def ldsmfrft(tt,xt,a,s,Q,*args):
+def ldsmfrft(tt,xt,a,s,Q):
     """
     Local DSmFrFT Based on FFT algorithm
-    >>>>> ldsmfrft(tt,xt,a,s,q,b) <<<<<
+    >>>>> ldsmfrft(tt,xt,a,s,Q) <<<<<
     where  tt:   time axis for x(t)      
            xt:   DT signal
            a:    rotation angle factor, alpha = a*pi/2     
            s:    starting point
            Q:    Q continuos point
-           args: b, level of approximation
     """        
     assert len(tt) == len(xt)     
     assert np.mod(len(tt),Q)==0
