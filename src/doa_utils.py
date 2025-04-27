@@ -180,7 +180,7 @@ def peak_alignment(tt, Xa, mo, qOP, d, aOP, op, c=3e8):
     
     if op=='dfrft':
         qD = fs*d*cos(alpha)/c
-    elif op=='dsmfrft':
+    elif op=='dsmfrft' or op=='ldsmfrft':
         qD = fs*d*cos(alpha)/c
         qD = qD/sin(alpha)
     else:
@@ -206,14 +206,14 @@ def peak_alignment(tt, Xa, mo, qOP, d, aOP, op, c=3e8):
             aux_signals[m,qMax:]=0+1j*0      
         frft_peaks = np.array([np.argmax(np.abs(signal)) for signal in aux_signals])
         # Frequency variable scaling
-        if op=='dsmfrft':
+        if op=='dsmfrft' or op=='ldsmfrft':
             qOPi_dfrft = round(qOPi * sin(alpha))
             iOP = int(qOPi_dfrft) + N//2   
         # Peak-position fittng    
         for m in range(M):
             if op=='dfrft':  
                 Xao[m,iOP] += aux_signals[m,frft_peaks[m]]
-            elif op=='dsmfrft':
+            elif op=='dsmfrft' or op=='ldsmfrft':
                 Xao[m,iOP] += aux_signals[m,frft_peaks[m]] * h1t[iOP]
             else:    
                 raise Warning("Invalid operator!")                 
@@ -239,7 +239,7 @@ def steering_vector_FrFT_domain(N, fs, qOP, aOP, angle, ula, op, c=3e8):
     if op=='dfrft':
         Aux = 2 * nd[:, None] * qOP # M-by-K matrix
         Aux = (pi/N) * Aux * np.tile(np.sin(alphaOP),(len(ula),1))
-    elif op=='dsmfrft':
+    elif op=='dsmfrft' or op=='ldsmfrft':
         Aux = 2 * nd[:, None] * qOP # M-by-K matrix
         Aux = (pi/N) * Aux
 
@@ -266,7 +266,7 @@ def eigenvalue_pairing(eigenvalues, tt, qOP, aOP, d, op, c=3e8):
         if op=='dfrft':      
             aux = aux0 * qOP_roll * sin(aOP*pi/2)  
             aux = -np.angle(eigenvalues) / aux
-        elif op=='dsmfrft':
+        elif op=='dsmfrft' or op=='ldsmfrft':
             aux = aux0 * qOP_roll
             aux = -np.angle(eigenvalues) / aux
         elif op=='dft':
@@ -289,12 +289,12 @@ def eigenvalue_pairing(eigenvalues, tt, qOP, aOP, d, op, c=3e8):
     angles = np.arcsin(aux)    
     return angles  
     
-def music_frft(tt, received_signals, mo, qOP, d, aOP, L, i, op, align=True, c=3e8, num_points=360):   
+def music_frft(tt, frft_signals, mo, qOP, d, aOP, L, i, op, align=True, c=3e8, num_points=360):   
     """
     MUSIC algorithm using FrFT for chirp signal DoA estimation
     >>>>> music_frft() <<<<<
     where  tt:    time axis for x(t)      
-           xt:    received signals
+           Xa:   Received signals in FrFT domain
            mo:    Index of reference sensor, mo=np.where(ula == 0)[0][0] 
            qOP:   Index of peaks at reference sensor, -N/2<=q<N/2
            d:     array distance 
@@ -303,18 +303,7 @@ def music_frft(tt, received_signals, mo, qOP, d, aOP, L, i, op, align=True, c=3e
            i:     peak index of i-th target
     """     
     num_sources = len(qOP)
-    num_sensors = received_signals.shape[0]
-    
-    # Apply FrFT to each sensor's received signal 
-    if op=='dfrft':
-        frft_signals = np.array([FrFT.dfrft1(tt, signal, aOP) for signal in received_signals])
-    elif op=='dsmfrft':
-        frft_signals = np.array([FrFT.dsmfrft1(tt, signal, aOP) for signal in received_signals])
-    elif op=='dft':
-        #frft_signals = received_signals
-        frft_signals = np.array([fft(signal) for signal in received_signals])        
-    else:
-        raise Warning("Invalid operator!")    
+    num_sensors = frft_signals.shape[0]  
         
     if align:    
         frft_signals = peak_alignment(tt, frft_signals, mo, qOP, d, aOP, op, c)   
@@ -323,16 +312,17 @@ def music_frft(tt, received_signals, mo, qOP, d, aOP, L, i, op, align=True, c=3e
     N = frft_signals.shape[1] # number of snapshots
     P = M-L+1 # Number of subarrays           
 
-    # Basic form
-    #X = frft_signals
-    #R = X @ X.conj().T # M-by-M matrix     
-    
     if L==M:
-        R = FB_averaging(frft_signals)
-    else:    
-        # Smoothed covariance forward subarrays
-        R = FB_spatial_smooting(frft_signals, L)
-        
+        # Averaged covariance matrix
+        R = FB_averaging(frft_signals) # M-by-M matrix
+    elif L>1 and L<M:    
+        # Smoothed covariance matrix
+        R = FB_spatial_smooting(frft_signals, L) # L-by-L matrix 
+    else:
+        # Basic form
+        Xa = frft_signals
+        R = Xa @ Xa.conj().T # M-by-M matrix        
+           
     # Eigenvalue decomposition
     eigenvalues, eigenvectors = np.linalg.eigh(R)
     noise_subspace = eigenvectors[:, :-num_sources]  # Smallest eigenvalues correspond to noise      
@@ -351,12 +341,12 @@ def music_frft(tt, received_signals, mo, qOP, d, aOP, L, i, op, align=True, c=3e
     
     return angles, music_spectrum                 
     
-def esprit_frft(tt, received_signals, mo, qOP, d, aOP, L, op, align=True, c=3e8):   
+def esprit_frft(tt, frft_signals, mo, qOP, d, aOP, L, op, align=True, c=3e8):   
     """
     Esprit algorithm using FrFT for chirp signal DoA estimation
     >>>>> esprit_frft() <<<<<
     where  tt:   time axis for x(t)      
-           xt:   received signals
+           Xa:   Received signals in FrFT domain
            mo:   Index of reference sensor, mo=np.where(ula == 0)[0][0] 
            qOP:  Index of peaks at reference sensor, -N/2<=q<N/2
            d:    array distance 
@@ -364,17 +354,8 @@ def esprit_frft(tt, received_signals, mo, qOP, d, aOP, L, op, align=True, c=3e8)
            L:    subarray size
     """     
     num_sources = len(qOP)
-    num_sensors = received_signals.shape[0]
+    num_sensors = frft_signals.shape[0]
     
-    # Apply FrFT to each sensor's received signal
-    if op=='dfrft':
-        frft_signals = np.array([FrFT.dfrft1(tt, signal, aOP) for signal in received_signals])
-    elif op=='dsmfrft':
-        frft_signals = np.array([FrFT.dsmfrft1(tt, signal, aOP) for signal in received_signals])
-    elif op=='dft':
-        frft_signals = np.array([fft(signal) for signal in received_signals])        
-    else:
-        raise Warning("Invalid operator!")
     if align:    
         frft_signals = peak_alignment(tt, frft_signals, mo, qOP, d, aOP, op, c) 
 
@@ -382,15 +363,16 @@ def esprit_frft(tt, received_signals, mo, qOP, d, aOP, L, op, align=True, c=3e8)
     N = frft_signals.shape[1] # number of snapshots
     P = M-L+1 # Number of subarrays      
         
-    # Basic form
-    #X = frft_signals
-    #R = X @ X.conj().T # M-by-M matrix     
-    
     if L==M:
-        R = FB_averaging(frft_signals)
-    else:    
-        # Smoothed covariance forward subarrays
-        R = FB_spatial_smooting(frft_signals, L)
+        # Averaged covariance matrix
+        R = FB_averaging(frft_signals) # M-by-M matrix
+    elif L>1 and L<M:    
+        # Smoothed covariance matrix
+        R = FB_spatial_smooting(frft_signals, L) # L-by-L matrix 
+    else:
+        # Basic form
+        Xa = frft_signals
+        R = Xa @ Xa.conj().T # M-by-M matrix 
     
     # Eigenvalue decomposition
     eigenvalues, eigenvectors = np.linalg.eigh(R)
@@ -429,11 +411,13 @@ def LSM(x,y):
     if len(x)<2:        
         return [float("NaN"),float("NaN")]    
     try:
-        return np.dot((np.dot(np.linalg.inv(B),A.T)),y)
+        C = np.dot((np.dot(np.linalg.inv(B),A.T)),y)
+        # slope, intercept
+        return np.hstack(C)[::-1].tolist()
     except:
         return [float("NaN"),float("NaN")]  
     
-def doa_line_fitting(fs,d,slope,aOP,op,c=3e8,*args):
+def doa_line_fitting(fs,d,slope,aOP,op,c=3e8):
     """
     DoA using LSM and delay formula
     >>>>> doa_line_fitting(fs,d,slope,aOP,op,c) <<<<<
@@ -444,7 +428,7 @@ def doa_line_fitting(fs,d,slope,aOP,op,c=3e8,*args):
     # Constrained LSM method
     if op=='dfrft':        
         aux = slope*c/(fs*d*cos(alpha))
-    elif op=='dsmfrft':   
+    elif op=='dsmfrft' or op == 'ldsmfrft':   
         aux = slope*c/(fs*d*cos(alpha))
         aux = aux*sin(alpha) # sin() by single DFT constraint
     else:
@@ -454,27 +438,20 @@ def doa_line_fitting(fs,d,slope,aOP,op,c=3e8,*args):
     theta = np.arcsin(aux)
     return theta    
     
-def multi_peaks_ULA(Xt, tt, ula, a, qOP, op, c=3e8):
+def multi_peaks_ULA(tt, Xa, ula, a, qOP, op, c=3e8):
     """
     Detecting multi peaks in FrFT domain
-    >>>>> multi_peaks_ULA(Xt,tt,ula,a0,q0,op,c) <<<<<
+    >>>>> multi_peaks_ULA(Xa,tt,ula,a,qOP,op,c) <<<<<
     where  tt:   time axis for X(t)      
-           Xt:   array DT signal
+           Xa:   Received signals in FrFT domain
            ula:  uniform linear array
            a:    optimal fractional order 
            qOP:  index (list) of u at reference sensor
     """     
-    [M,N] = Xt.shape    
-    Xa = np.array([[0.0 for i in range(N)] for j in range(M)])
+    [M,N] = Xa.shape    
+    Xa = np.abs(Xa)
     mo = np.where(ula == 0)[0][0]
-    for i in range(1,M):
-        m = np.mod(mo + i,M)   
-        if op == 'dfrft':    
-            Xa[m,:] = np.abs(FrFT.dfrft1(tt,Xt[m,:],a))
-        elif op == 'dsmfrft':     
-            Xa[m,:] = np.abs(FrFT.dsmfrft1(tt,Xt[m,:],a))              
-        else:
-            raise Warning("Invalid operator!")      
+     
     # outlier parameters
     fs = (len(tt)-1)/(tt[-1]-tt[0])
     alpha = a*pi/2
@@ -482,7 +459,7 @@ def multi_peaks_ULA(Xt, tt, ula, a, qOP, op, c=3e8):
     
     if op == 'dfrft':
         qD = fs*d*cos(alpha)/c
-    elif op == 'dsmfrft':
+    elif op == 'dsmfrft' or op == 'ldsmfrft':
         qD = fs*d*cos(alpha)/c
         qD = qD/sin(alpha)
     else:

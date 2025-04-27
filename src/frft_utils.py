@@ -259,8 +259,7 @@ def ldsmfrft(tt,xt,a,s,Q):
         for idp in range(P):
             p = idp - N//2
             for q in range(Q):
-                B[q,idp] = exp(1j*pi*(2*p*q+P*q**2)/(Q*tan(alpha)))
-                B[q,idp] = B[q,idp]*exp(-1j*2*pi*(q*s)/Q)
+                B[q,idp] = exp(1j*(pi/Q)*(-2*(s-p/tan(alpha))*q + P*(q**2)/tan(alpha)))
         B = np.multiply(A,B)         
                 
         # The inner DFT by columns
@@ -271,9 +270,8 @@ def ldsmfrft(tt,xt,a,s,Q):
         C = np.array([[0.0+1j*0.0 for i in range(P)] for k in range(Q)])        
         for idp in range(P):
             p = idp - N//2
-            for r in range(Q):
-                C[r,idp] = exp(1j*pi*(p**2)/(N*tan(alpha)))
-                C[r,idp] = C[r,idp]*exp(-1j*2*pi*p*(r+s)/N)
+            for l in range(Q):
+                C[l,idp] = exp(1j*(pi/N)*(-2*p*(s+l) + (p**2)/tan(alpha)))
         C = np.multiply(B,C)  
         
         # The outer DFT by row summation       
