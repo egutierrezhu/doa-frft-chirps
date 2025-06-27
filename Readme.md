@@ -11,10 +11,9 @@ The core contribution includes the use of the **discrete simplified fractional F
 ## 🧠 Key Features
 
 - **DoA estimation for wideband chirp signals** using fractional Fourier analysis.
-- Implementation of **subspace-based algorithms**:
-  - MUSIC
-  - ESPRIT
-  (with spatial smoothing and forward-backward averaging)
+- Implementation of **subspace-based algorithms** with spatial smoothing and forward-backward averaging:
+  - FBSS-MUSIC
+  - FBSS-ESPRIT
 - **Peak alignment preprocessing** to improve subspace-based algorithm accuracy.
 - **Multi-line fitting** methods for multi-target cases:
   - Piecewise linear regression
@@ -58,7 +57,7 @@ pip install -r requirements.txt
 
 ## 📊 Example Output
 
-Example results are shown directly in the output cells of the Jupyter notebook `multi_target_simulation.ipynb`, including:
+Example results are shown directly in the output cells of the Jupyter notebooks `single_target_simulation.ipynb` and `multi_target_simulation.ipynb`,  corresponding to the single- and multi-target scenarios, respectively. For the latter, the following aspects are addressed:
 ```
 - Signal Modeling
 - Preprocessing
@@ -74,7 +73,7 @@ Example results are shown directly in the output cells of the Jupyter notebook `
 
 If you use this code or build upon this work, please cite the following:
 
-> **[Huampo et al.],** *Direction-of-Arrival Estimation for Wideband Chirps via Multi-Line Fitting in the Fractional Fourier Domain*, [Journal Name], [Volume], [Pages], [2025].
+> **E. G. Huampo, J. B. Lima and J. R. d. O. Neto,** "Direction-of-Arrival Estimation for Wideband Chirps via Multi-Line Fitting in the Fractional Fourier Domain," in *IEEE Access*, vol. 13, pp. 107328-107342, 2025, doi: 10.1109/ACCESS.2025.3581843.
 
 ---
 
